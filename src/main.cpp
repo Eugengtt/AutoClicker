@@ -9,16 +9,18 @@
 #define ID_RADIO_INFINITE 1005
 #define ID_RADIO_FIXED 1006
 #define ID_TEXTBOX_COUNT 1007
+#define ID_CHECKBOX_DOUBLE 1008
 
 #define ID_HOTKEY_F3 1
 
 bool isActive = false;
-HWND hButtonStart, hTxtDelay, hComboMouse, hRadioInfinite, hRadioFixed, hTxtCount;
+HWND hButtonStart, hTxtDelay, hComboMouse, hRadioInfinite, hRadioFixed, hTxtCount, hCheckDouble;
 HWND hLblDelay, hLblMouse, hLblRepeat;
 
 int clickDelay = 10;
 int clickType = 0;
 bool isInfinite = true;
+bool isDoubleClick = false;
 int targetClicks = 100;
 int clickCounter = 0;
 
@@ -41,17 +43,19 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
             SendMessage(hComboMouse, CB_ADDSTRING, 0, (LPARAM)"Right");
             SendMessage(hComboMouse, CB_SETCURSEL, 0, 0);
 
-            hLblRepeat = CreateWindow("STATIC", "Click repeat:", WS_VISIBLE | WS_CHILD, 20, 90, 130, 20, hwnd, NULL, NULL, NULL);
+            hCheckDouble = CreateWindow("BUTTON", "Double Click (2 click-uri)", WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX, 160, 80, 180, 20, hwnd, (HMENU)ID_CHECKBOX_DOUBLE, NULL, NULL);
 
-            hRadioInfinite = CreateWindow("BUTTON", "Repeat until stopped", WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON | WS_GROUP, 160, 90, 160, 20, hwnd, (HMENU)ID_RADIO_INFINITE, NULL, NULL);
-            hRadioFixed = CreateWindow("BUTTON", "Repeat exactly:", WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON, 160, 115, 115, 20, hwnd, (HMENU)ID_RADIO_FIXED, NULL, NULL);
+            hLblRepeat = CreateWindow("STATIC", "Click repeat:", WS_VISIBLE | WS_CHILD, 20, 110, 130, 20, hwnd, NULL, NULL, NULL);
 
-            hTxtCount = CreateWindow("EDIT", "100", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_NUMBER, 280, 115, 50, 20, hwnd, (HMENU)ID_TEXTBOX_COUNT, NULL, NULL);
+            hRadioInfinite = CreateWindow("BUTTON", "Repeat until stopped", WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON | WS_GROUP, 160, 110, 160, 20, hwnd, (HMENU)ID_RADIO_INFINITE, NULL, NULL);
+            hRadioFixed = CreateWindow("BUTTON", "Repeat exactly:", WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON, 160, 135, 115, 20, hwnd, (HMENU)ID_RADIO_FIXED, NULL, NULL);
+
+            hTxtCount = CreateWindow("EDIT", "100", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_NUMBER, 280, 135, 50, 20, hwnd, (HMENU)ID_TEXTBOX_COUNT, NULL, NULL);
 
             CheckDlgButton(hwnd, ID_RADIO_INFINITE, BST_CHECKED);
             UpdateRepeatFields(hwnd);
 
-            hButtonStart = CreateWindow("BUTTON", "START (F3)", WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 20, 155, 310, 45, hwnd, (HMENU)ID_BUTTON_START, NULL, NULL);
+            hButtonStart = CreateWindow("BUTTON", "START (F3)", WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 20, 175, 310, 45, hwnd, (HMENU)ID_BUTTON_START, NULL, NULL);
 
             break;
         }
@@ -71,6 +75,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
                     if (clickDelay <= 0) clickDelay = 1;
 
                     clickType = SendMessage(hComboMouse, CB_GETCURSEL, 0, 0);
+                    isDoubleClick = IsDlgButtonChecked(hwnd, ID_CHECKBOX_DOUBLE) == BST_CHECKED;
 
                     UpdateRepeatFields(hwnd);
                     if (!isInfinite) {
@@ -101,12 +106,25 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
         case WM_TIMER: {
             if (wParam == ID_TIMER_CLICK) {
                 if (isActive) {
+                    int loops = isDoubleClick ? 2 : 1;
+
+                    INPUT input[2] = {0};
+                    input[0].type = INPUT_MOUSE;
+                    input[1].type = INPUT_MOUSE;
+
                     if (clickType == 0) {
-                        mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
-                        mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+                        input[0].mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+                        input[1].mi.dwFlags = MOUSEEVENTF_LEFTUP;
                     } else {
-                        mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0);
-                        mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0);
+                        input[0].mi.dwFlags = MOUSEEVENTF_RIGHTDOWN;
+                        input[1].mi.dwFlags = MOUSEEVENTF_RIGHTUP;
+                    }
+
+                    for (int i = 0; i < loops; i++) {
+                        SendInput(2, input, sizeof(INPUT));
+                        if (isDoubleClick && i == 0) {
+                            Sleep(1);
+                        }
                     }
 
                     if (!isInfinite) {
@@ -150,7 +168,7 @@ int main() {
         L"AutoClickerV4Clasa",
         L"Universal Auto-Clicker Pro v4",
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_VISIBLE,
-        100, 100, 365, 250,
+        100, 100, 365, 270,
         NULL, NULL, hInst, NULL
     );
 
