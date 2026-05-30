@@ -27,3 +27,4 @@ A fast, lightweight, and efficient auto-clicker for Windows, written natively in
 * **Interface:** Win32 API (Native Windows GUI)
 * **Simulation Method:** `mouse_event` (Classic Windows API)
 * **Compatibility:** Windows 10 / Windows 11
+<img width="446" height="308" alt="Screenshot 2026-05-30 095532" src="https://github.com/user-attachments/assets/7a7768cd-e205-41ab-9601-4633fe59a4de" />
